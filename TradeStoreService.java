@@ -12,9 +12,9 @@ public class TradeStoreService implements Runnable {
 	static Logger logger = Logger.getLogger(TradeStoreService.class.getName());
 	private String tradeStr;
 	private HashMap<String, Trade> store = new HashMap<String, Trade>();
-	private static String pattern = "dd/MM/yyyy"; 
+	private static String pattern = "dd/MM/yyyy";
 	private static SimpleDateFormat dateFormat = new SimpleDateFormat(pattern);
-	 
+
 	Date today = new Date();
 
 	public TradeStoreService(String tradeStr) {
@@ -27,7 +27,7 @@ public class TradeStoreService implements Runnable {
 
 			if (isValid) {
 				storeTrade(trade);
-				sortTradeStrore();
+				//sortTradeStrore();
 			}
 		} catch (InvalidTradeException ex) {
 			logger.log(Level.SEVERE, "Trade execution failed", ex);
@@ -35,14 +35,18 @@ public class TradeStoreService implements Runnable {
 
 	}
 
-	private void sortTradeStrore() {
-		store.
-		store.sort((o1, o2)->o1.getAge()-o2.getAge());
-		
-	}
+	/*
+	 * private void sortTradeStrore() { List<Map.Entry<String, Trade> > list = new
+	 * LinkedList<Map.Entry<String, Trade> >(store.entrySet()); Comparator<Trade> c
+	 * = Comparator.comparing((Trade t) -> t.getTradeId()).thenComparing(t ->
+	 * t.getVersion()); Collections.sort(store, c); }
+	 */
 
-	private Trade createTrade(String inputTrade) {
+	public Trade createTrade(String inputTrade) throws InvalidTradeException {
 		Trade trade = null;
+		if (inputTrade == null) {
+			throw new NullPointerException("Input Trade String is null");
+		}
 		try {
 			String[] inputparams = inputTrade.split(",");
 			Date today = new Date();
@@ -52,18 +56,22 @@ public class TradeStoreService implements Runnable {
 			trade.setCounterPartyId(inputparams[2]);
 			trade.setBookId(inputparams[3]);
 			String maturityDt = inputparams[4];
-			System.out.println(maturityDt);
+			//System.out.println(maturityDt);
 			trade.setMaturityDate(dateFormat.parse(maturityDt));
 			trade.setCreatedDate(today);
 			trade.setExpired(Boolean.getBoolean(inputparams[5]));
 		} catch (ParseException e) {
 			logger.log(Level.SEVERE, "Trade creation failed", e);
+			throw new InvalidTradeException("Failed while parsing Input Trade String", e);
+		} catch (NullPointerException ne) {
+			logger.log(Level.SEVERE, "Trade creation failed", ne);
+			throw new InvalidTradeException("Input Trade String is null", ne);
 		}
 		return trade;
 
 	}
 
-	private Trade getTrade(String key) {
+	public Trade getTrade(String key) {
 		Trade existingTrade = null;
 		if (key != null) {
 			existingTrade = store.get(key);
@@ -74,7 +82,7 @@ public class TradeStoreService implements Runnable {
 	public boolean validateTrade(Trade trade) throws InvalidTradeException {
 		boolean isTradevalid = false;
 		String keygen = trade.getTradeId() + trade.getVersion();
-		
+
 		if (trade != null) {
 			Trade existingTrade = getTrade(keygen);
 			if (existingTrade == null) {
@@ -110,8 +118,15 @@ public class TradeStoreService implements Runnable {
 
 	@Override
 	public void run() {
-		Trade trade = createTrade(tradeStr);
+		Trade trade;
+		try {
+			trade = createTrade(tradeStr);
+		
 		executeTrade(trade);
+		} catch (InvalidTradeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 }

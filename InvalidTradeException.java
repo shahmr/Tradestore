@@ -7,4 +7,8 @@ public class InvalidTradeException extends Exception {
 	public InvalidTradeException(String s) {
 		super(s);
 	}
+
+	public InvalidTradeException(String string, Exception e) {
+		super(string, e);
+	}
 }
